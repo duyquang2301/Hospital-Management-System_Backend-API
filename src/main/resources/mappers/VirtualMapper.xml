@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.VirtualMapper">
+	<resultMap id="VirtualPlasticSurgery" type="com.wannabe.app.main.data.entity.VirtualSurgery">
+		<result column="id" property="id"/>
+		<result column="user_id" property="userId"/>
+		<result column="original_file_group_id" property="originalFileGroupId"/>
+		<result column="virtual_file_group_id" property="virtualFileGroupId"/>
+		<result column="virtual_left_group_id" property="virtualLeftGroupId"/>
+		<result column="virtual_right_group_id" property="virtualRightGroupId"/>
+		<result column="is_counsel_yn" property="isCounselYn"/>
+		<result column="date_created" property="dateCreated" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="dateUpdated" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="type" property="type"/>
+	</resultMap>
+
+	<resultMap id="VirtualSurgeryPart" type="com.wannabe.app.main.data.entity.VirtualSurgeryPart">
+		<result column="id" property="id"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="category" property="category"/>
+		<result column="detail_part" property="detailPart"
+			typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+	</resultMap>
+
+	<select id="findVirtualSurgeryByUserId" parameterType="Long" resultMap="VirtualPlasticSurgery">
+		SELECT *
+		FROM t_virtual_surgery
+		WHERE id = #{id}
+		  AND user_id = #{userId};
+	</select>
+
+	<select id="findVirtualSurgeryById" parameterType="Long" resultMap="VirtualPlasticSurgery">
+		SELECT *
+		FROM t_virtual_surgery
+		WHERE id = #{id}
+	</select>
+
+	<insert id="insertVirtualSurgery" parameterType="com.wannabe.app.main.data.entity.VirtualSurgery"
+		useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO t_virtual_surgery (user_id, type)
+		VALUES (#{userId}, #{type});
+	</insert>
+
+	<update id="updateGroupIds" parameterType="com.wannabe.app.main.data.entity.VirtualSurgery">
+		UPDATE t_virtual_surgery
+		SET original_file_group_id = #{originalFileGroupId},
+		    virtual_file_group_id  = #{virtualFileGroupId}
+		WHERE id = #{id};
+	</update>
+
+	<update id="updateVirtualSurgeryImage" parameterType="com.wannabe.app.main.data.entity.VirtualSurgery">
+		UPDATE t_virtual_surgery
+		SET virtual_file_group_id = #{virtualFileGroupId},
+		    type                  = 'MANUAL'
+		WHERE id = #{id};
+	</update>
+
+	<delete id="deleteVirtualCategory" parameterType="Long">
+		DELETE
+		FROM t_virtual_surgery_part
+		WHERE virtual_id = #{virtualId};
+	</delete>
+
+	<update id="updateOnSideGroupIds" parameterType="com.wannabe.app.main.data.entity.VirtualSurgery">
+		UPDATE t_virtual_surgery
+		SET virtual_left_group_id  = #{virtualLeftGroupId},
+		    virtual_right_group_id = #{virtualRightGroupId}
+		WHERE id = #{id};
+	</update>
+
+	<insert id="insertVirtualCategory" parameterType="com.wannabe.app.main.data.entity.VirtualSurgeryPart">
+		INSERT INTO t_virtual_surgery_part (virtual_id,
+		                                    category,
+		                                    detail_part)
+		VALUES (#{virtualId},
+		        #{category},
+		        #{detailPart, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler});
+	</insert>
+
+	<update id="updateCounselState" parameterType="com.wannabe.app.main.data.entity.VirtualSurgery">
+		UPDATE t_virtual_surgery
+		SET is_counsel_yn = #{isCounselYn}
+		WHERE id = #{id};
+	</update>
+
+	<select id="findVirtualSurgeryPartByVirtualId" parameterType="Long" resultMap="VirtualSurgeryPart">
+		SELECT *
+		FROM t_virtual_surgery_part
+		WHERE virtual_id = #{virtualId};
+	</select>
+
+	<resultMap id="GetMyVirtualSurgeryDto" type="com.wannabe.app.main.data.dto.virutality.GetMyVirtualSurgeryDto">
+		<id column="id" property="id"/>
+		<result column="path" property="thumbNail"/>
+		<result column="createAt" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="state" property="state"/>
+	</resultMap>
+
+	<select id="findAllByUserId" parameterType="Map" resultMap="VirtualPlasticSurgery">
+		SELECT *
+		FROM t_virtual_surgery
+		WHERE user_id = #{userId}
+		ORDER BY date_created
+		LIMIT #{size} OFFSET #{page} * 10
+	</select>
+
+	<!--	<select id="findAllByUserId" parameterType="Map" resultMap="GetMyVirtualSurgeryDto">-->
+	<!--		SELECT vs.id           as id,-->
+	<!--		       vs.date_created as createAt,-->
+	<!--		       f.path          as path,-->
+	<!--		       c.state         as state-->
+	<!--		FROM t_virtual_surgery vs-->
+	<!--			     JOIN t_files f ON vs.virtual_file_group_id = f.group_id-->
+	<!--			     JOIN t_counsel c ON vs.id = c.type_id-->
+	<!--		WHERE vs.user_id = #{userId}-->
+	<!--		ORDER BY vs.date_created-->
+	<!--		LIMIT #{size} OFFSET #{page} * 10;-->
+	<!--	</select>-->
+
+	<delete id="deleteVirtualSurgeryById" parameterType="long">
+		DELETE
+		FROM t_virtual_surgery
+		WHERE id = #{virtualId}
+	</delete>
+
+	<select id="countAllByUserId" parameterType="Map">
+		SELECT COUNT(*)
+		FROM t_virtual_surgery
+		WHERE user_id = #{userId};
+	</select>
+
+	<resultMap id="virtualSurgeryWithCounsel" type="com.wannabe.app.main.data.dto.virutality.GetMyVirtualSurgeryDto">
+		<id column="id" property="id"/>
+		<result column="createAt" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="state" property="state"/>
+		<result column="thumbNail" property="thumbNail"/>
+	</resultMap>
+
+	<select id="findCounselByUserId" parameterType="Map" resultMap="virtualSurgeryWithCounsel">
+		SELECT vs.id           AS id,
+		       vs.date_created AS createAt,
+		       c.state         AS state,
+		       t.path          AS thumbNail
+		FROM t_virtual_surgery vs
+			     LEFT JOIN (SELECT DISTINCT ON (virtual_id) *
+			                FROM t_counsel
+			                ORDER BY virtual_id, date_created) c ON vs.id = c.virtual_id
+			     LEFT JOIN t_files t ON vs.original_file_group_id = t.group_id
+		WHERE vs.user_id = #{userId}
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+</mapper>

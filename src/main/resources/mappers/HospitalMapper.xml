@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.HospitalMapper">
+	<resultMap id="Hospital" type="com.wannabe.app.main.data.entity.Hospital">
+		<result column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="post_code" property="postCode"/>
+		<result column="address" property="address"/>
+		<result column="address_detail" property="addressDetail"/>
+		<result column="description" property="description"/>
+		<result column="state" property="status"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_deleted" property="deletedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="phone_number" property="phoneNumber"/>
+		<result column="consult_count" property="consultCount"/>
+		<result column="city" property="city"/>
+		<result column="district" property="district"/>
+		<result column="medical_category" property="medicalCategory" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="features" property="features" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="exposed_rank" property="exposedRank"/>
+	</resultMap>
+
+	<resultMap id="getHospitalEventList" type="com.wannabe.app.main.data.dto.hospital.HospitalDto$GetHospitalEventsDto">
+		<id column="id" property="id"/>
+		<result column="imageGroupId" property="imageGroupId"/>
+		<result column="name" property="name"/>
+		<result column="counselCount" property="counselCount"/>
+		<result column="cost" property="cost"/>
+		<association property="region" javaType="com.wannabe.app.main.data.dto.common.CommonDto$Region">
+			<result column="city" property="city"/>
+			<result column="district" property="district"/>
+		</association>
+	</resultMap>
+
+
+	<select id="getHospitals" parameterType="com.wannabe.app.main.data.dto.common.Filter" resultMap="Hospital">
+		SELECT *
+		FROM t_hospital
+		WHERE state='ACTIVE' AND deleted_yn = 'N'
+		<if test="keyword != null and keyword != ''">
+			AND name ILIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="category != null and category.size() gt 0">
+			AND ARRAY[medical_category] <![CDATA[&&]]>
+			ARRAY[
+			#{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler}
+			]::varchar[]
+		</if>
+		<if test="city != null and city != ''">
+			AND city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		ORDER BY
+		<if test="sort != null">
+			${sort},
+		</if>
+		exposed_rank
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="getHospitalsExposedRankFirstSorting" parameterType="com.wannabe.app.main.data.dto.common.Filter" resultMap="Hospital">
+		SELECT *
+		FROM t_hospital
+		WHERE state='ACTIVE' AND deleted_yn = 'N'
+		<if test="keyword != null and keyword != ''">
+			AND name ILIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="category != null and category.size() gt 0">
+			AND ARRAY[medical_category] <![CDATA[&&]]>
+			ARRAY[
+			#{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler}
+			]::varchar[]
+		</if>
+		<if test="city != null and city != ''">
+			AND city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		ORDER BY exposed_rank
+		<if test="sort != null">
+			, ${sort}
+		</if>
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="getHospital" parameterType="long" resultMap="Hospital">
+		SELECT *
+		FROM t_hospital
+		WHERE id = #{hospitalId}
+		  AND state = 'ACTIVE'
+		  AND deleted_yn = 'N';
+	</select>
+
+	<select id="getHospitalThumbNail" parameterType="long" resultType="String">
+		SELECT file.path
+		FROM t_hospital hos
+			     JOIN t_files file ON hos.image_group_id = file.group_id
+		WHERE hos.image_group_id = #{groupId}
+		  AND file.file_order = 1;
+	</select>
+
+	<resultMap id="getHospitalDetailWithDoctor" type="com.wannabe.app.main.data.dto.hospital.HospitalDto$GetHospitalDetailDto">
+		<id column="hospital_id" property="hospitalId"/>
+		<result column="description" property="intro"/>
+		<!--  카테고리  -->
+		<result column="hospitalCategory" property="hospitalCategories" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="features" property="features" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+
+		<!--<collection
+			property="hours"
+			column="{hospitalId = hospital_id}"
+			javaType="java.util.List"
+			ofType="com.wannabe.app.main.data.dto.hospital.HospitalDto$Hours"
+			select="selectHospitalSchedule"
+		/>-->
+
+		<!--  병원 운영 시간  -->
+		<collection javaType="List" ofType="com.wannabe.app.main.data.dto.hospital.HospitalDto$Hours" property="hours">
+			<result column="day" property="day"/>
+			<result column="start_time" property="openTime"/>
+			<result column="end_time" property="closeTime"/>
+			<result column="day_off" property="dayOff"/>
+		</collection>
+	</resultMap>
+
+	<select id="getHospitalDetail" parameterType="long" resultMap="getHospitalDetailWithDoctor">
+		SELECT hos.id               AS hospital_id,
+		       hos.description,
+		       hos.medical_category AS hospitalCategory,
+		       hs.day,
+		       hs.start_time,
+		       hs.end_time,
+		       hs.day_off,
+		       hos.features
+		FROM t_hospital hos
+			     JOIN t_hospital_schedule hs ON hos.id = hs.hospital_id
+		WHERE hos.id = #{hospitalId}
+		  AND hos.state = 'ACTIVE'
+		ORDER BY hs.id;
+	</select>
+
+	<select id="selectHospitalSchedule" resultType="com.wannabe.app.main.data.dto.hospital.HospitalDto$Hours">
+		SELECT day,
+		       start_time,
+		       end_time,
+		       day_off
+		FROM t_hospital_schedule
+		WHERE hospital_id = #{hospitalId};
+	</select>
+
+	<select id="getHospitalEvents" parameterType="Map" resultMap="getHospitalEventList">
+		SELECT event.id AS id,
+		event.image_group_id AS imageGroupId,
+		hos.city AS city,
+		hos.district AS district,
+		event.name AS name,
+		event.consult_count AS counselCount,
+		event.price AS cost
+		FROM t_event event
+		JOIN t_hospital hos ON hos.id = event.hospital_id
+		WHERE hos.id = #{hospitalId}
+		AND event.state='ACTIVE'
+		AND event.type='EVENT'
+		<if test="category != null and category.size() gt 0">
+			AND event.category IN (
+			<foreach collection="category" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		ORDER BY CASE WHEN #{sort} = 'date_created' THEN event.date_created END DESC,
+		CASE WHEN #{sort} = 'consult_count' THEN event.consult_count END DESC,
+		CASE WHEN #{sort} = 'price' THEN event.price END DESC,
+		CASE WHEN #{sort} = 'low_price' THEN event.price END
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<update id="updateConsultCount" parameterType="com.wannabe.app.main.data.entity.Hospital">
+		UPDATE t_hospital
+		SET consult_count = #{consultCount}
+		WHERE id = #{id};
+	</update>
+
+	<select id="findActiveHospitalInfo" parameterType="long" resultType="com.wannabe.app.main.data.dto.common.CommonDto$HospitalInfo">
+		SELECT h.id,
+		       file.path  AS thumb_nail,
+		       h.name,
+		       h.address,
+		       h.address_detail,
+		       h.city     AS city,
+		       h.district AS district,
+		       h.phone_number
+		FROM t_hospital h
+			     LEFT JOIN t_files file ON h.image_group_id = file.group_id
+		WHERE h.id = #{hospitalId}
+		  AND file.file_order = 1
+		  AND h.state = 'ACTIVE';
+	</select>
+
+	<select id="findHospitalBookmarkByHospitalId" parameterType="Map" resultMap="Hospital">
+		SELECT *
+		FROM t_hospital
+		WHERE state = 'ACTIVE'
+		  AND id = #{hospitalId}
+		ORDER BY exposed_rank
+	</select>
+
+	<select id="countAll" parameterType="com.wannabe.app.main.data.dto.common.Filter" resultType="long">
+		SELECT COUNT(*)
+		FROM (
+		SELECT * FROM t_hospital
+		WHERE state = 'ACTIVE'
+		AND deleted_yn = 'N'
+		<if test="keyword != null and keyword != ''">
+			AND name ILIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="category != null and category.size() gt 0">
+			AND ARRAY[medical_category] <![CDATA[&&]]>
+			ARRAY[
+			#{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler}
+			]::varchar[]
+		</if>
+		<if test="city != null and city != ''">
+			AND city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		ORDER BY
+		<if test="sort != null">
+			${sort},
+		</if>
+		exposed_rank
+		) AS subquery
+	</select>
+
+	<resultMap id="Article" type="com.wannabe.app.main.data.entity.Article">
+		<id column="id" property="id"/>
+		<result column="user_id" property="writerId"/>
+		<result column="article_type" property="type"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="content" property="content"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updateAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="comment_count" property="commentCount"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="before_image" property="beforeImageGroupId"/>
+		<result column="after_image" property="afterImageGroupId"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="review_type" property="reviewType"/>
+		<result column="review_type_id" property="reviewTypeId"/>
+	</resultMap>
+
+	<select id="getEventReviewByHospitalId" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article a
+		WHERE a.review_type_id IN (SELECT e.id
+		FROM t_event e
+		WHERE e.hospital_id = #{hospitalId}
+		AND e.state = 'ACTIVE'
+		AND e.type = 'EVENT'
+		ORDER BY e.date_created)
+		<if test="category != null and category.size() gt 0">
+			AND (
+			<foreach item="item" collection="category" open="" separator="OR" close="">
+				array_to_string(a.category, ',') LIKE '%' || #{item} || '%'
+			</foreach>
+			)
+		</if>
+		AND a.available_yn='Y'
+		AND a.review_type = 'EVENT'
+		ORDER BY CASE WHEN #{sort} = 'date_created' THEN a.date_created END DESC,
+		CASE WHEN #{sort} = 'view_count' THEN a.view_count END DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="countEventReviewByHospitalId" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM (
+		SELECT *
+		FROM t_article a
+		WHERE a.review_type_id IN (SELECT e.id
+		FROM t_event e
+		WHERE e.hospital_id = #{hospitalId}
+		AND e.state = 'ACTIVE'
+		AND e.type = 'EVENT'
+		ORDER BY e.date_created)
+		<if test="category != null and category.size() gt 0">
+			AND (
+			<foreach item="item" collection="category" open="" separator="OR" close="">
+				array_to_string(a.category, ',') LIKE '%' || #{item} || '%'
+			</foreach>
+			)
+		</if>
+		AND a.available_yn='Y'
+		AND a.review_type = 'EVENT'
+		) AS subquery
+	</select>
+</mapper>

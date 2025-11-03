@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.HomeMapper">
+	<resultMap id="getEvent" type="com.wannabe.app.main.data.dto.event.GetEventDto">
+		<id column="id" property="id"/>
+		<result column="thumbNail" property="thumbNail"/>
+		<result column="hospitalName" property="hospitalName"/>
+		<result column="name" property="name"/>
+		<result column="counselCount" property="counselCount"/>
+		<result column="cost" property="cost"/>
+		<association property="region" javaType="com.wannabe.app.main.data.dto.common.CommonDto$Region">
+			<result column="city" property="city"/>
+			<result column="district" property="district"/>
+		</association>
+	</resultMap>
+
+	<select id="findAllPopularEvent" parameterType="Map" resultMap="getEvent">
+		SELECT ev.id            AS id,
+		       file.path        AS thumbNail,
+		       hos.city         AS city,
+		       hos.district     AS district,
+		       hos.name         AS hospitalName,
+		       ev.name          AS name,
+		       ev.consult_count AS counselCount,
+		       ev.price         AS cost
+		FROM t_event ev
+			     JOIN t_hospital hos ON hos.id = ev.hospital_id
+			     LEFT JOIN t_files file ON ev.image_group_id = file.group_id
+		WHERE file.file_order = 1
+		  AND ev.type = 'EVENT'
+		  AND ev.state = 'ACTIVE'
+		  AND ev.date_started &lt; NOW()::TIMESTAMPTZ
+		  AND ev.date_end &gt; NOW()::TIMESTAMPTZ
+		ORDER BY ev.consult_count DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<resultMap id="Hospital" type="com.wannabe.app.main.data.entity.Hospital">
+		<result column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="post_code" property="postCode"/>
+		<result column="address" property="address"/>
+		<result column="address_detail" property="addressDetail"/>
+		<result column="description" property="description"/>
+		<result column="state" property="status"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_deleted" property="deletedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="phone_number" property="phoneNumber"/>
+		<result column="consult_count" property="consultCount"/>
+		<result column="city" property="city"/>
+		<result column="district" property="district"/>
+		<result column="medical_category" property="medicalCategory" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="image_group_id" property="imageGroupId"/>
+	</resultMap>
+
+	<select id="findAllPopularHospital" parameterType="Map" resultMap="Hospital">
+		SELECT *
+		FROM t_hospital
+		WHERE state = 'ACTIVE' and id != 9999
+		ORDER BY consult_count DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<resultMap id="Article" type="com.wannabe.app.main.data.entity.Article">
+		<id column="id" property="id"/>
+		<result column="user_id" property="writerId"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="content" property="content"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updateAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="comment_count" property="commentCount"/>
+		<result column="comment_id" property="commentId"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="article_type" property="type"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="review_type" property="reviewType"/>
+		<result column="review_type_id" property="reviewTypeId"/>
+		<result column="before_image" property="beforeImageGroupId"/>
+		<result column="after_image" property="afterImageGroupId"/>
+	</resultMap>
+
+	<select id="findAllPopularReviews" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE article_type = 'REVIEW'
+		  AND available_yn = 'Y'
+		ORDER BY view_count DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<resultMap id="Banner" type="com.wannabe.app.main.data.entity.Banner">
+		<id column="id" property="id"/>
+		<result column="admin_id" property="adminId"/>
+		<result column="type" property="type"/>
+		<result column="title" property="title"/>
+		<result column="description" property="description"/>
+		<result column="date_created" property="createdAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updatedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_deleted" property="deletedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_started" property="startedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_ended" property="endedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_sent" property="sentAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="state" property="state"/>
+		<result column="exposed_rank" property="exposedRank"/>
+		<result column="category" property="category"/>
+		<result column="detail_category" property="detailCategory" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="banner_link_image_group_id" property="bannerLinkImageGroupId"/>
+		<result column="banner_link_yn" property="bannerLinkYn"/>
+		<result column="hospital_id" property="hospitalId"/>
+	</resultMap>
+
+	<select id="findAllBanners" resultMap="Banner">
+		SELECT *
+		FROM t_admin_forum
+		WHERE type = 'BANNER'
+		  AND state = 'ACTIVE'
+		  AND date_deleted IS NULL
+		  AND date_started &lt; NOW()::TIMESTAMPTZ
+		  AND date_ended &gt; NOW()::TIMESTAMPTZ
+		ORDER BY exposed_rank
+		LIMIT 20;
+	</select>
+
+	<select id="findAllMainBanners" resultMap="Banner">
+		SELECT *
+		FROM t_admin_forum
+		WHERE type = 'MAIN_BANNER'
+		  AND state = 'ACTIVE'
+		  AND date_deleted IS NULL
+		  AND date_started &lt; NOW()::TIMESTAMPTZ
+		  AND date_ended &gt; NOW()::TIMESTAMPTZ
+		ORDER BY exposed_rank
+		LIMIT 20;
+	</select>
+
+</mapper>

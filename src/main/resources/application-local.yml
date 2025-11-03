@@ -1,0 +1,67 @@
+spring:
+  datasource:
+    url: #
+    username: #
+    password: #
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: #
+    cluster-mode: false
+  elasticsearch:
+    host: #
+    port: #
+    username: #
+    password: #
+server:
+  port: 8090
+jwt:
+  secret: #
+logging:
+  config: classpath:log4j2-spring.yml
+management:
+  health:
+    elasticsearch:
+      enabled: false
+cloud:
+  aws:
+    credentials:
+      access-key: #
+      secret-key: #
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: #
+      target: "local"
+      signedurl:
+        expires: 80
+    cloud-front:
+      distribution-domain: #
+      key-pair-id: #
+      private-key: |-
+        -----BEGIN PRIVATE KEY-----
+        -----END PRIVATE KEY-----
+      expired-milli-second: 86400000
+social:
+  kakao:
+    admin-key: #
+    client-id: #
+    client-secret: #
+    redirect-uri: http://localhost:8090/auth/kakao/login
+  line:
+    channel-id: #
+    channel-secret: #
+    redirect-uri: http://localhost:3000/login/join/auth
+  google:
+    client-id: #
+    client-secret: #
+    redirect-uri: http://localhost:3000/login/join/auth
+  apple:
+    client-id: #
+    team_id: #
+domain:
+  backend: localhost:8090
+  article-path: /community/article/
+  review-path: /community/review/
+  event-counsel-path: /user/event/counsel/
+  hospital-counsel-path: /user/hospital/counsel/

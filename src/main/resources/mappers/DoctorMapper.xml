@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.DoctorMapper">
+	<resultMap id="Doctor" type="com.wannabe.app.main.data.dto.doctor.DoctorDTO">
+		<result column="id" property="id"/>
+		<result column="hospital_id" property="hospitalId"/>
+		<result column="name" property="name"/>
+		<result column="medical_category" property="categories" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="position" property="position"/>
+		<result column="description" property="description"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_deleted" property="deletedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="state" property="status"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="path" property="profileImg"/>
+	</resultMap>
+
+	<select id="getDoctors" parameterType="Map" resultMap="Doctor">
+		SELECT td.id,
+		td.hospital_id,
+		td.name,
+		td.medical_category,
+		td.position,
+		td.description,
+		td.date_created,
+		td.date_deleted,
+		td.state,
+		td.image_group_id,
+		tf.path
+		FROM t_doctor td
+		INNER JOIN t_hospital th ON th.id = td.hospital_id
+		LEFT JOIN t_files tf ON tf.group_id = td.image_group_id
+		WHERE tf.file_order = 1
+		AND td.state = 'ACTIVE'
+		<if test="query != null and query != ''">
+			AND td.name LIKE concat('%',#{query},'%')
+		</if>
+		<if test="city != null and city != ''">
+			AND th.city = #{city}
+		</if>
+		<if test="district != null and district != ''">
+			AND th.district IN
+			<foreach collection="district" item="item" index="index" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="category != null and category != '' and category.size() gt 0">
+			AND
+			<foreach collection="category" item="item" index="index" open="(" separator="or" close=")">
+				#{item} = any(td.medical_category)
+			</foreach>
+		</if>
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<resultMap id="getDoctorDetail" type="com.wannabe.app.main.data.dto.doctor.DoctorDetailDTO">
+		<id column="id" property="id"/>
+		<result column="imageGroupId" property="imageGroupId"/>
+		<result column="name" property="name"/>
+		<result column="position" property="position"/>
+		<result column="categories" property="categories" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="history" property="history"/>
+		<association property="hospitalInfo" javaType="com.wannabe.app.main.data.dto.common.CommonDto$HospitalShortInfo">
+			<id column="hospitalId" property="id"/>
+			<result column="hospitalImageGroupId" property="hospitalImageGroupId"/>
+			<result column="hospitalName" property="name"/>
+			<association property="region" javaType="com.wannabe.app.main.data.dto.common.CommonDto$Region">
+				<result column="city" property="city"/>
+				<result column="district" property="district"/>
+			</association>
+		</association>
+	</resultMap>
+
+	<select id="getDoctor" parameterType="long" resultMap="getDoctorDetail">
+		SELECT doc.id               AS id,
+		       doc.image_group_id   AS imageGroupId,
+		       doc.name             AS name,
+		       doc.position         AS position,
+		       doc.medical_category AS categories,
+		       doc.description      AS history,
+		       hos.id               AS hospitalId,
+		       hos.image_group_id   AS hospitalImageGroupId,
+		       hos.name             AS hospitalName,
+		       hos.city             AS city,
+		       hos.district         AS district
+		FROM t_doctor doc
+			     JOIN t_hospital hos ON hos.id = doc.hospital_id
+		WHERE doc.id = #{doctorId};
+	</select>
+
+	<resultMap id="Article" type="com.wannabe.app.main.data.entity.Article">
+		<id column="id" property="id"/>
+		<result column="user_id" property="writerId"/>
+		<result column="article_type" property="type"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="content" property="content"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updateAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="comment_count" property="commentCount"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="before_image" property="beforeImageGroupId"/>
+		<result column="after_image" property="afterImageGroupId"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="review_type" property="reviewType"/>
+		<result column="review_type_id" property="reviewTypeId"/>
+	</resultMap>
+
+	<select id="getEventReviewByHospitalId" parameterType="long" resultMap="Article">
+		SELECT *
+		FROM t_article a
+		WHERE a.review_type_id IN (SELECT e.id
+		                           FROM t_event e
+		                           WHERE e.hospital_id = #{hospitalId}
+			                         AND e.state = 'ACTIVE'
+			                         AND e.type = 'EVENT'
+			                         AND e.date_started &lt; NOW()::TIMESTAMPTZ
+			                         AND e.date_end &gt; NOW()::TIMESTAMPTZ
+		                           ORDER BY e.date_created)
+		  AND a.review_type = 'EVENT'
+		LIMIT 20;
+	</select>
+
+	<resultMap id="DoctorInfo" type="com.wannabe.app.main.data.dto.common.CommonDto$DoctorInfo">
+		<id column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="position" property="position"/>
+		<result column="medical_category" property="doctorCategories" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="state" property="state"/>
+	</resultMap>
+
+	<select id="getDoctorsByHospitalId" parameterType="long" resultMap="DoctorInfo">
+		SELECT *
+		FROM t_doctor
+		WHERE hospital_id = #{hospitalId}
+		  AND state = 'ACTIVE'
+	</select>
+
+	<select id="countAll" resultType="long">
+		SELECT
+		COUNT(*)
+		FROM t_doctor td
+		INNER JOIN t_hospital th ON th.id = td.hospital_id
+		LEFT JOIN t_files tf ON tf.group_id = td.image_group_id
+		WHERE tf.file_order = 1
+		AND td.state = 'ACTIVE'
+		<if test="query != null and query != ''">
+			AND td.name LIKE concat('%',#{query},'%')
+		</if>
+		<if test="city != null and city != ''">
+			AND th.city = #{city}
+		</if>
+		<if test="district != null and district != ''">
+			AND th.district IN
+			<foreach collection="district" item="item" index="index" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="category != null and category != '' and category.size() gt 0">
+			AND
+			<foreach collection="category" item="item" index="index" open="(" separator="or" close=")">
+				#{item} = any(td.medical_category)
+			</foreach>
+		</if>
+	</select>
+</mapper>

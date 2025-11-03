@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.UserMapper">
+	<resultMap id="User" type="com.wannabe.app.main.data.entity.User">
+		<result column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="nickname" property="nickname"/>
+		<result column="login_key" property="loginKey"/>
+		<result column="login_type" property="loginType"/>
+		<result column="date_birth" property="dateBirth"/>
+		<result column="gender" property="gender"/>
+		<result column="category" property="category"
+			typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="city" property="city"/>
+		<result column="district" property="district"
+			typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="category" property="category"
+			typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="date_created" property="dateCreated"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_deleted" property="dateDeleted"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="dateUpdated"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_last_logged_in" property="dateLastLoggedIn"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="state" property="state"/>
+		<result column="verified_yn" property="verifiedYn"/>
+		<result column="point" property="point"/>
+		<result column="device_token" property="deviceToken"/>
+		<result column="marketing_terms" property="marketingTerms"/>
+		<result column="phone_number" property="phoneNumber"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="banned_yn" property="bannedYn"/>
+		<result column="date_banned" property="dateBanned"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+        <result column="login_email" property="loginEmail"/>
+	</resultMap>
+
+	<select id="findUserByLogin" parameterType="String" resultMap="User">
+		SELECT *
+		FROM t_user
+		WHERE login_key = #{loginKey}
+		  AND login_type = #{loginType};
+	</select>
+
+	<select id="findUserById" parameterType="long" resultMap="User">
+		SELECT *
+		FROM t_user
+		WHERE id = #{userId};
+	</select>
+
+	<insert id="insertUser" parameterType="com.wannabe.app.main.data.entity.User"
+		useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO t_user (name,
+		                    nickname,
+		                    login_type,
+		                    login_key,
+		                    gender,
+		                    date_birth,
+		                    city,
+		                    district,
+		                    category,
+		                    marketing_terms,
+                            login_email)
+		VALUES (#{name},
+		        #{nickname},
+		        #{loginType},
+		        #{loginKey},
+		        #{gender},
+		        #{dateBirth},
+		        #{city},
+		        #{district, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		        #{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		        #{marketingTerms},
+                #{loginEmail}
+                )
+	</insert>
+
+	<select id="findUserByDeviceToken" parameterType="com.wannabe.app.main.data.entity.User" resultMap="User">
+		SELECT *
+		FROM t_user
+		WHERE id = #{id}
+		  AND device_token = #{deviceToken};
+	</select>
+
+	<update id="updateDeviceToken" parameterType="com.wannabe.app.main.data.entity.User">
+		UPDATE t_user
+		SET device_token = #{deviceToken}
+		WHERE id = #{id};
+	</update>
+
+	<update id="deleteDeviceToken" parameterType="String">
+		UPDATE t_user
+		SET device_token = null
+		WHERE device_token = #{deviceToken};
+	</update>
+
+	<update id="deleteUserDeviceToken" parameterType="long">
+		UPDATE t_user
+		SET device_token = null
+		WHERE id = #{userId};
+	</update>
+
+	<update id="updateAdditionInfo" parameterType="com.wannabe.app.main.data.entity.User">
+		UPDATE t_user
+		SET category = #{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		    city     = #{city},
+		    district = #{district, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler}
+		WHERE id = #{id};
+	</update>
+
+	<select id="findUserBySocialLoginFilter" parameterType="com.wannabe.app.main.data.dto.auth.SocialLoginFilter" resultMap="User">
+		SELECT *
+		FROM t_user
+		WHERE login_key = #{loginKey}
+		  AND login_type = #{loginType}
+		  AND state IN ('JOINED');
+	</select>
+
+	<update id="withdrawal" parameterType="com.wannabe.app.main.data.entity.User">
+		UPDATE t_user
+		SET state           = #{state},
+		    nickname        = #{nickname},
+		    date_deleted    = #{dateUpdated, typeHandler=com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler},
+		    login_key       = #{loginKey},
+		    login_type      = #{loginType},
+		    gender          = #{gender},
+		    date_birth      = #{dateBirth},
+		    category        = #{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		    city            = #{city},
+		    district        = #{district, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		    verified_yn     = #{verifiedYn},
+		    marketing_terms = #{marketingTerms},
+		    image_group_id  = #{imageGroupId},
+		    name            = #{name},
+		    device_token    = #{deviceToken},
+		    phone_number    = #{phoneNumber},
+		    point           = #{point}
+		WHERE id = #{id};
+	</update>
+
+	<select id="findWithdrawalSeq" resultType="long">
+		SELECT nextval('USER_WITHDRAW_ID_SEQ'::regclass);
+	</select>
+
+	<select id="findUserByNickname" parameterType="string" resultMap="User">
+		SELECT *
+		FROM t_user
+		WHERE nickname = #{nickname};
+	</select>
+
+	<update id="updateUserPersonalInfo" parameterType="com.wannabe.app.main.data.entity.User">
+		UPDATE t_user
+		SET name         = #{name},
+		    nickname     = #{nickname},
+		    phone_number = #{phoneNumber},
+		    gender       = #{gender},
+		    date_birth   = #{dateBirth}
+		WHERE id = #{id};
+	</update>
+
+	<update id="updateUserImageGroupId" parameterType="com.wannabe.app.main.data.entity.User">
+		UPDATE t_user
+		SET image_group_id = #{imageGroupId}
+		WHERE id = #{id};
+	</update>
+
+	<select id="findUserChatProfile" parameterType="long" resultType="com.wannabe.app.main.data.dto.user.UserChatProfileDTO">
+		SELECT u.id   AS user_id,
+		       u.nickname,
+		       f.path AS profile_image_url
+		FROM t_user u
+			     LEFT JOIN t_files f ON u.image_group_id = f.group_id
+		WHERE u.id = #{userId};
+	</select>
+
+	<select id="findDeviceToken" parameterType="long" resultType="String">
+		SELECT device_token
+		FROM t_user
+		WHERE id = #{userId};
+	</select>
+
+	<resultMap id="Article" type="com.wannabe.app.main.data.entity.Article">
+		<id column="id" property="id"/>
+		<result column="user_id" property="writerId"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="content" property="content"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updateAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="comment_count" property="commentCount"/>
+		<result column="comment_id" property="commentId"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="article_type" property="type"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="review_type" property="reviewType"/>
+		<result column="review_type_id" property="reviewTypeId"/>
+		<result column="before_image" property="beforeImageGroupId"/>
+		<result column="after_image" property="afterImageGroupId"/>
+	</resultMap>
+
+	<select id="findAllArticles" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article article
+		WHERE article.user_id = #{userId}
+        AND available_yn = 'Y'
+		ORDER BY article.date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="findAllNormalArticle" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE user_id = #{userId}
+		  AND article_type = 'ARTICLE'
+		  AND available_yn = 'Y'
+		ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="findAllReviews" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE user_id = #{userId}
+		  AND article_type = 'REVIEW'
+		  AND available_yn = 'Y'
+		ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="findPointByUserId" parameterType="long" resultType="Integer">
+		SELECT point
+		FROM t_user
+		where id = #{userId};
+	</select>
+
+	<select id="countAll" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM t_article
+		WHERE user_id = #{userId}
+		AND available_yn = 'Y'
+		<if test="type != null">
+			AND article_type = #{type};
+		</if>
+	</select>
+
+</mapper>

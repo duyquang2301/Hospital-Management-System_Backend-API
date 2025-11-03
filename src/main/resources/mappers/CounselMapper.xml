@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.CounselMapper">
+	<resultMap id="Counsel" type="com.wannabe.app.main.data.entity.Counsel">
+		<result column="id" property="id"/>
+		<result column="user_id" property="userId"/>
+		<result column="counsel_type" property="counselType"/>
+		<result column="type_id" property="typeId"/>
+		<result column="state" property="state"/>
+		<result column="date_created" property="createdAt"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updatedAt"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_completed" property="completedAt"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="description" property="description"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="counsel_answer" property="counselAnswer"/>
+	</resultMap>
+
+	<select id="findCounsel" parameterType="long" resultMap="Counsel">
+		SELECT *
+		FROM t_counsel
+		WHERE id = #{id}
+	</select>
+
+	<insert id="insertVirtualCounsel" parameterType="com.wannabe.app.main.data.entity.Counsel">
+		INSERT INTO t_counsel (user_id,
+		                       counsel_type,
+		                       type_id,
+		                       description,
+		                       virtual_id,
+		                       category)
+		VALUES (#{userId},
+		        #{counselType},
+		        #{typeId},
+		        #{description},
+		        #{virtualId},
+		        #{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler})
+	</insert>
+
+	<insert id="insertHospitalCounsel" parameterType="com.wannabe.app.main.data.entity.Counsel" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO t_counsel (user_id,
+		                       counsel_type,
+		                       type_id,
+		                       category,
+		                       virtual_id,
+		                       image_group_id,
+		                       description)
+		VALUES (#{userId},
+		        #{counselType},
+		        #{typeId},
+		        #{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		        #{virtualId},
+		        #{imageGroupId},
+		        #{description})
+	</insert>
+
+	<insert id="insertEventCounsel" parameterType="com.wannabe.app.main.data.entity.Counsel"
+		useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO t_counsel (user_id,
+		                       counsel_type,
+		                       type_id,
+		                       description)
+		VALUES (#{userId},
+		        #{counselType},
+		        #{typeId},
+		        #{description})
+	</insert>
+
+	<select id="findCounselByVirtualId" parameterType="Map" resultMap="Counsel">
+		SELECT *
+		FROM t_counsel
+		WHERE counsel_type = 'VIRTUAL'
+		  AND virtual_id = #{virtualId}
+		  AND user_id = #{userId}
+		ORDER BY date_created;
+	</select>
+
+	<select id="findAllCounselByUserId" parameterType="Map" resultMap="Counsel">
+		SELECT *
+		FROM t_counsel
+		WHERE user_id = #{userId}
+		  AND counsel_type != 'VIRTUAL'
+		ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<update id="updateImageGroupId" parameterType="long">
+		UPDATE t_counsel
+		SET image_group_id = #{imageGroupId}
+		WHERE id = #{counselId};
+	</update>
+
+	<select id="findAllCounselByUserIdAndId" parameterType="Map" resultMap="Counsel">
+		SELECT *
+		FROM t_counsel
+		WHERE user_id = #{userId}
+		  AND virtual_id = #{virtualId}
+		  AND counsel_type = 'VIRTUAL'
+		ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="findEventCounselByUserIdAndId" parameterType="Map" resultMap="Counsel">
+		SELECT *
+		FROM t_counsel
+		WHERE user_id = #{userId}
+		  AND id = #{counselId}
+		  AND counsel_type = 'EVENT'
+	</select>
+
+	<select id="findCounselByUserIdAndId" parameterType="Long" resultMap="Counsel">
+		SELECT *
+		FROM t_counsel
+		WHERE user_id = #{userId}
+		  AND id = #{counselId}
+		  AND counsel_type IN ('HOSPITAL', 'VIRTUAL', 'EVENT');
+	</select>
+
+	<select id="countAllByUserIdAndVirtualId" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM t_counsel
+		WHERE user_id = #{userId}
+		  And virtual_id = #{virtualId};
+	</select>
+
+	<select id="countAllByUserId" parameterType="long" resultType="long">
+		SELECT COUNT(*)
+		FROM t_counsel
+		WHERE user_id = #{userId};
+	</select>
+</mapper>

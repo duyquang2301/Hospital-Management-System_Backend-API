@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.NotificationMapper">
+    <resultMap id="Notification" type="com.wannabe.app.main.data.entity.Notification">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="typeId" column="type_id"/>
+        <result property="detailType" column="detail_type"/>
+        <result property="detailTypeId" column="detail_type_id"/>
+        <result column="date_created" property="createdAt"
+            typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+        <result property="readAt" column="date_read"
+            typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+        <result property="readYn" column="read_yn"/>
+    </resultMap>
+
+    <insert id="insertNotification" parameterType="com.wannabe.app.main.data.entity.Notification">
+        INSERT INTO t_notification (user_id,
+                                    type,
+                                    type_id,
+                                    detail_type,
+                                    detail_type_id)
+        VALUES ( #{userId}
+               , #{type}
+               , #{typeId}
+               , #{detailType}
+               , #{detailTypeId})
+    </insert>
+
+    <select id="findNotificationListByUserId" parameterType="long" resultMap="Notification">
+        SELECT *
+        FROM t_notification
+        WHERE user_id = #{userId}
+          AND date_created &gt; NOW()::TIMESTAMPTZ - interval '30 day'
+        ORDER BY date_created DESC;
+    </select>
+
+    <update id="updateNotificationReadByUserId" parameterType="long">
+        UPDATE t_notification
+        SET read_yn   = 'Y',
+            date_read = NOW()::TIMESTAMPTZ
+        WHERE user_id = #{userId}
+          AND read_yn = 'N';
+    </update>
+</mapper>

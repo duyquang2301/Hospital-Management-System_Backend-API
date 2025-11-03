@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.AdminMapper">
+    <select id="findAdminById" parameterType="long" resultType="com.wannabe.app.main.data.entity.Admin">
+        SELECT *
+        FROM t_admin
+        WHERE id = #{id}
+          AND deleted_yn = 'N';
+    </select>
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.PromotionGroupMapper">
+    <resultMap id="PromotionGroup" type="com.wannabe.app.main.data.entity.PromotionGroup">
+        <result column="id" property="id" />
+        <result column="date_created" property="createdAt"
+            typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler" />
+        <result column="date_updated" property="updatedAt"
+            typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler" />
+        <result column="date_end" property="endAt"
+            typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler" />
+        <result column="state" property="state" />
+        <result column="exposed_rank" property="exposedRank" />
+        <result column="name" property="name" />
+    </resultMap>
+
+    <select id="findPromotionGroupList" resultMap="PromotionGroup">
+        SELECT *
+        FROM t_promotion_group
+        WHERE state = 'ACTIVE'
+            AND date_end &gt; NOW()::TIMESTAMPTZ
+            AND date_started &lt; NOW()::TIMESTAMPTZ
+            <if test="cursor != null and cursor > 0">
+                AND id &gt; #{cursor}
+            </if>
+        ORDER BY exposed_rank
+        LIMIT #{size};
+    </select>
+
+    <select id="findPromotionGroupById" parameterType="long" resultMap="PromotionGroup">
+        SELECT *
+        FROM t_promotion_group
+        WHERE id = #{promotionGroupId}
+            AND state = 'ACTIVE'
+            AND date_end &gt; NOW()::TIMESTAMPTZ
+            AND date_started &lt; NOW()::TIMESTAMPTZ;
+    </select>
+
+    <select id="findExposedRankFirstPromotionBannerList" resultType="com.wannabe.app.main.data.dto.event.PromotionBannerDTO">
+        SELECT p.id,
+               f.path
+        FROM t_promotion_group p
+                 LEFT JOIN t_files f on p.image_group_id = f.group_id
+        WHERE f.file_order = 1
+          AND date_end &gt; NOW()::TIMESTAMPTZ
+          AND date_started &lt; NOW()::TIMESTAMPTZ
+          AND p.state = 'ACTIVE'
+          AND p.exposed_rank = 1;
+    </select>
+</mapper>

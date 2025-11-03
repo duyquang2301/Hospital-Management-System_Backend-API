@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.TermMapper">
+
+	<select id="findTermByTermId"  resultType="com.wannabe.app.main.data.entity.Term" parameterType="long">
+        select
+            id,
+            term_category ,
+            date_started,
+            term_content
+        from
+            t_admin_forum
+        where
+            id = #{termId}
+            and type = 'TERM'
+	</select>
+
+</mapper>

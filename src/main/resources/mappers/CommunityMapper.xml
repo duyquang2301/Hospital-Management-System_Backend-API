@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.CommunityMapper">
+	<resultMap id="Article" type="com.wannabe.app.main.data.entity.Article">
+		<id column="id" property="id"/>
+		<result column="user_id" property="writerId"/>
+		<result column="article_type" property="type"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="content" property="content"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updateAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="comment_count" property="commentCount"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="before_image" property="beforeImageGroupId"/>
+		<result column="after_image" property="afterImageGroupId"/>
+		<result column="review_type" property="reviewType"/>
+		<result column="review_type_id" property="reviewTypeId"/>
+	</resultMap>
+
+	<select id="findAllArticle" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE available_yn='Y'
+		<if test="category !='' and category != null">
+			AND #{category} = ANY(category)
+		</if>
+        AND id NOT IN(
+            SELECT article_id
+            FROM t_article_block
+            WHERE user_id = #{userId}
+        )
+        ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="countAll" parameterType="string" resultType="long">
+		SELECT COUNT(*)
+		FROM t_article
+		WHERE available_yn = 'Y'
+		<if test="category !='' and category != null">
+			AND #{category} = ANY(category)
+		</if>
+        AND id NOT IN(
+            SELECT article_id
+            FROM t_article_block
+            WHERE user_id = #{userId}
+        )
+	</select>
+
+	<select id="findAllNormalArticle" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE article_type='ARTICLE' AND available_yn='Y'
+		<if test="category !='' and category != null">
+			AND #{category} = ANY(category)
+		</if>
+        AND id NOT IN(
+            SELECT article_id
+            FROM t_article_block
+            WHERE user_id = #{userId}
+        )
+		ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="countAllNormalArticle" parameterType="string" resultType="long">
+		SELECT COUNT(*)
+		FROM t_article
+		WHERE article_type = 'ARTICLE'
+		AND available_yn = 'Y'
+		<if test="category !='' and category != null">
+			AND #{category} = ANY(category)
+		</if>
+        AND id NOT IN(
+            SELECT article_id
+            FROM t_article_block
+            WHERE user_id = #{userId}
+        )
+	</select>
+
+	<select id="findAllReviews" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE article_type = 'REVIEW' AND available_yn='Y'
+		<if test="category !='' and category != null">
+			AND #{category} = ANY(category)
+		</if>
+        AND id NOT IN(
+            SELECT article_id
+            FROM t_article_block
+            WHERE user_id = #{userId}
+        )
+		ORDER BY date_created DESC
+		LIMIT #{size} OFFSET #{page} * 10;
+	</select>
+
+	<select id="countAllReview" parameterType="string" resultType="long">
+		SELECT COUNT(*)
+		FROM t_article
+		WHERE article_type = 'REVIEW'
+		AND available_yn = 'Y'
+		<if test="category !='' and category != null">
+			AND #{category} = ANY(category)
+		</if>
+        AND id NOT IN(
+            SELECT article_id
+            FROM t_article_block
+            WHERE user_id = #{userId}
+        )
+	</select>
+
+	<select id="findByArticleId" parameterType="long" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE id = #{articleId}
+		  AND available_yn = 'Y';
+	</select>
+
+	<update id="updateViewCount" parameterType="long">
+		UPDATE t_article
+		SET view_count = view_count + 1
+		WHERE id = #{articleId}
+	</update>
+
+	<update id="updateCommentCount" parameterType="long">
+		UPDATE t_article
+		SET comment_count = comment_count + 1
+		WHERE id = #{articleId}
+	</update>
+
+	<insert id="saveArticle" parameterType="com.wannabe.app.main.data.entity.Article" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO t_article (user_id, category, content, date_created, date_updated, review_type, review_type_id, article_type)
+		VALUES (#{writerId},
+		        #{category, typeHandler=com.wannabe.app.main.utility.mybatis.StringListHandler},
+		        #{content},
+		        now(),
+		        now(),
+		        #{reviewType},
+		        #{reviewTypeId},
+		        #{type})
+	</insert>
+
+	<update id="updateArticle" parameterType="com.wannabe.app.main.data.entity.Article">
+		UPDATE t_article
+		SET content = #{content}
+		WHERE id = #{id};
+	</update>
+
+	<update id="updateArticleGroupId" useGeneratedKeys="true" keyColumn="id" parameterType="Map">
+		UPDATE t_article
+		SET image_group_id = #{groupId}
+		WHERE id = #{articleId};
+	</update>
+
+	<select id="findArticleByArticleId" parameterType="Map" resultMap="Article">
+		SELECT *
+		FROM t_article article
+		WHERE article.id = #{articleId}
+		  AND available_yn = 'Y';
+	</select>
+
+	<select id="findReviewListByEventId" parameterType="long" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE review_type = 'EVENT'
+		  AND available_yn = 'Y'
+		  AND review_type_id = #{eventId}
+		ORDER BY view_count DESC
+		LIMIT 10;
+	</select>
+
+	<select id="countAllReviewByEventId" parameterType="long" resultType="long">
+		SELECT COUNT(*)
+		FROM (SELECT *
+		      FROM t_article
+		      WHERE review_type = 'EVENT'
+			    AND available_yn = 'Y'
+			    AND review_type_id = #{eventId}) AS subquery
+	</select>
+
+    <update id="deleteArticleById" parameterType="java.lang.Long">
+        UPDATE t_article
+        SET available_yn  = 'N'
+        WHERE id = #{value}
+    </update>
+
+    <insert id="saveArticleBlock" parameterType="com.wannabe.app.main.data.entity.ArticleBlock" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        INSERT INTO t_article_block (article_id, user_id, date_created)
+        VALUES (#{articleId}, #{userId}, now())
+    </insert>
+
+</mapper>

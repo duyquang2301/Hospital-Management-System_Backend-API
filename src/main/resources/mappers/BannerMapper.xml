@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.BannerMapper">
+
+	<resultMap id="Banner" type="com.wannabe.app.main.data.entity.Banner">
+		<id column="id" property="id"/>
+		<result column="admin_id" property="adminId"/>
+		<result column="type" property="type"/>
+		<result column="title" property="title"/>
+		<result column="description" property="description"/>
+		<result column="date_created" property="createdAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updatedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_deleted" property="deletedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_started" property="startedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_ended" property="endedAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_sent" property="sentAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="state" property="state"/>
+		<result column="exposed_rank" property="exposedRank"/>
+		<result column="category" property="category"/>
+		<result column="detail_category" property="detailCategory" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="banner_link_image_group_id" property="bannerLinkImageGroupId"/>
+		<result column="banner_link_yn" property="bannerLinkYn"/>
+		<result column="hospital_id" property="hospitalId"/>
+	</resultMap>
+
+	<select id="findBannerById" resultMap="Banner">
+		SELECT *
+		FROM t_admin_forum
+		WHERE type = 'BANNER'
+		  AND state = 'ACTIVE'
+          AND id = #{eventId}
+	</select>
+
+
+</mapper>

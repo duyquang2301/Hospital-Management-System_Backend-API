@@ -1,0 +1,5 @@
+spring:
+  sql:
+    init:
+      mode: always # 서버 시작시 항상 classpath의 sql문을 실행하도록 설정
+      schema-locations: classpath:schema-<<databaseType>>.sql # 서버 시작시 ddl sql문을 실행할 위치 및 파일 지정

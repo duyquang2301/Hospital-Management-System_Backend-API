@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.EventMapper">
+	<resultMap id="Event" type="com.wannabe.app.main.data.entity.Event">
+		<result column="id" property="id"/>
+		<result column="hospital_id" property="hospitalId"/>
+		<result column="name" property="name"/>
+		<result column="price" property="price"/>
+		<result column="consult_count" property="consultCount"/>
+		<result column="date_created" property="dateCreated" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_started" property="dateStarted" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_end" property="dateEnd" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="state" property="state"/>
+		<result column="content" property="content"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="category" property="category"/>
+		<result column="detail_category" property="detailCategory" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="description" property="description"/>
+		<result column="view_count" property="viewCount"/>
+	</resultMap>
+
+	<select id="findActiveEventById" parameterType="Long" resultMap="Event">
+		SELECT *
+		FROM t_event
+		WHERE id = #{eventId}
+		  AND state = 'ACTIVE';
+	</select>
+
+	<update id="increaseConsultCount" parameterType="com.wannabe.app.main.data.entity.Event">
+		UPDATE t_event
+		SET consult_count = #{consultCount}
+		WHERE id = #{id};
+	</update>
+
+	<resultMap id="getEvent" type="com.wannabe.app.main.data.dto.event.GetEventDto">
+		<id column="id" property="id"/>
+		<result column="thumbNail" property="thumbNail"/>
+		<result column="hospitalName" property="hospitalName"/>
+		<result column="name" property="name"/>
+		<result column="counselCount" property="counselCount"/>
+		<result column="cost" property="cost"/>
+		<association property="region" javaType="com.wannabe.app.main.data.dto.common.CommonDto$Region">
+			<result column="city" property="city"/>
+			<result column="district" property="district"/>
+		</association>
+	</resultMap>
+
+	<select id="getEvents" parameterType="com.wannabe.app.main.data.dto.event.PromotionFilter" resultMap="getEvent">
+		SELECT e.id AS id,
+		f.path AS thumbNail,
+		h.city AS city,
+		h.district AS district,
+		h.name AS hospitalName,
+		e.name AS name,
+		e.consult_count AS counselCount,
+		e.price AS cost
+		FROM t_event e
+		JOIN t_hospital h ON h.id = e.hospital_id
+		LEFT JOIN t_files f on e.image_group_id = f.group_id
+		WHERE f.file_order = 1
+		AND e.state = 'ACTIVE'
+		AND e.type = 'EVENT'
+		AND e.date_started &lt; NOW()::TIMESTAMPTZ
+		AND e.date_end &gt; NOW()::TIMESTAMPTZ
+		<if test="city != null">
+			AND h.city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND h.district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		<if test="category != null">
+			AND e.category = #{category}
+		</if>
+		<if test="categoryDetail != null">
+			AND e.detail_category <![CDATA[&&]]> array[
+			#{categoryDetail}::varchar
+			]
+		</if>
+		ORDER BY
+		<if test="sort != null">
+			${sort},
+		</if>
+		e.exposed_rank
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="findEventCount" parameterType="com.wannabe.app.main.data.dto.event.PromotionFilter" resultType="long">
+		SELECT count(*)
+		FROM t_event e
+		JOIN t_hospital h ON h.id = e.hospital_id
+		WHERE e.state = 'ACTIVE'
+		AND e.type = 'EVENT'
+		AND e.date_started &lt; NOW()::TIMESTAMPTZ
+		AND e.date_end &gt; NOW()::TIMESTAMPTZ
+		<if test="city != null">
+			AND h.city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND h.district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		<if test="category != null">
+			AND e.category = #{category}
+		</if>
+		<if test="categoryDetail != null">
+			AND e.detail_category <![CDATA[&&]]> array[
+			#{categoryDetail}::varchar
+			]
+		</if>
+	</select>
+
+	<select id="findEventById" parameterType="long" resultMap="Event">
+		SELECT *
+		FROM t_event
+		WHERE id = #{eventId};
+	</select>
+
+	<select id="findEventDtoById" parameterType="long" resultMap="getEvent">
+		SELECT ev.id            AS id,
+		       file.path        AS thumbNail,
+		       hos.city         AS city,
+		       hos.district     AS district,
+		       hos.name         AS hospitalName,
+		       ev.name          AS name,
+		       ev.consult_count AS counselCount,
+		       ev.price         AS cost
+		FROM t_event ev
+			     JOIN t_hospital hos ON hos.id = ev.hospital_id
+			     LEFT JOIN t_files file on ev.image_group_id = file.group_id
+		WHERE ev.id = #{eventId}
+		  AND ev.state = 'ACTIVE'
+		  AND file.file_order = 1;
+	</select>
+
+	<update id="increaseEventViewCount" parameterType="long">
+		UPDATE t_event
+		SET view_count = view_count + 1
+		WHERE id = #{eventId};
+	</update>
+
+	<resultMap id="Article" type="com.wannabe.app.main.data.entity.Article">
+		<id column="id" property="id"/>
+		<result column="user_id" property="writerId"/>
+		<result column="category" property="category" typeHandler="com.wannabe.app.main.utility.mybatis.StringListHandler"/>
+		<result column="content" property="content"/>
+		<result column="date_created" property="createAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updateAt" typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="view_count" property="viewCount"/>
+		<result column="comment_count" property="commentCount"/>
+		<result column="comment_id" property="commentId"/>
+		<result column="virtual_id" property="virtualId"/>
+		<result column="article_type" property="type"/>
+		<result column="image_group_id" property="imageGroupId"/>
+		<result column="review_type" property="reviewType"/>
+		<result column="review_type_id" property="reviewTypeId"/>
+		<result column="before_image" property="beforeImageGroupId"/>
+		<result column="after_image" property="afterImageGroupId"/>
+	</resultMap>
+
+	<select id="findByHospitalId" parameterType="long" resultMap="Article">
+		SELECT *
+		FROM t_article
+		WHERE article_type = 'REVIEW'
+		  AND review_type_id = #{hospitalId}
+		ORDER BY date_created DESC
+		LIMIT 20;
+	</select>
+
+	<select id="findActiveEventByHospitalId" parameterType="long" resultMap="Event">
+		SELECT *
+		FROM t_event
+		WHERE state = 'ACTIVE'
+		  AND hospital_id = #{hospitalId}
+	</select>
+
+	<select id="findRecommendEvents" parameterType="long" resultMap="getEvent">
+		SELECT h.event_id      AS id,
+		       count(*),
+		       e.name,
+		       e.consult_count AS counselCount,
+		       e.price         AS cost,
+		       hs.name         AS hospitalName,
+		       hs.city,
+		       hs.district,
+		       f.path          AS thumbNail
+		FROM t_event_history h
+			     LEFT JOIN T_EVENT e ON h.event_id = e.id
+			     LEFT JOIN T_HOSPITAL hs ON e.hospital_id = hs.id
+			     LEFT JOIN T_FILES f ON e.image_group_id = f.group_id
+		WHERE h.before_event_id = #{eventId}
+		  AND f.file_order = 1
+		GROUP BY h.event_id,
+		         e.name,
+		         e.consult_count,
+		         e.price,
+		         hs.name,
+		         hs.city,
+		         hs.district,
+		         f.path
+		ORDER BY count(*) DESC
+		LIMIT 5;
+	</select>
+
+	<select id="findExposedEventsByPromotionGroupId" parameterType="long" resultMap="getEvent">
+		SELECT e.id            AS id,
+		       f.path          AS thumbNail,
+		       h.city          AS city,
+		       h.district      AS district,
+		       h.name          AS hospitalName,
+		       e.name          AS name,
+		       e.consult_count AS counselCount,
+		       e.price         AS cost
+		FROM t_event e
+			     JOIN t_hospital h ON h.id = e.hospital_id
+			     LEFT JOIN t_files f on e.image_group_id = f.group_id
+		WHERE e.promotion_group_id = #{promotionGroupId}
+		  AND e.state = 'ACTIVE'
+		  AND e.type = 'PROMOTION'
+		  AND e.date_started &lt; NOW()::TIMESTAMPTZ
+		  AND e.date_end &gt; NOW()::TIMESTAMPTZ
+		  AND f.file_order = 1
+		ORDER BY e.exposed_rank
+		LIMIT 3;
+	</select>
+
+	<select id="findEventBookmarkByEventId" parameterType="Map" resultMap="getEvent">
+		SELECT ev.id            AS id,
+		       file.path        AS thumbNail,
+		       hos.city         AS city,
+		       hos.district     AS district,
+		       hos.name         AS hospitalName,
+		       ev.name          AS name,
+		       ev.consult_count AS counselCount,
+		       ev.price         AS cost
+		FROM t_event ev
+			     JOIN t_hospital hos ON hos.id = ev.hospital_id
+			     LEFT JOIN t_files file ON ev.image_group_id = file.group_id
+		WHERE file.file_order = 1
+		  AND ev.state = 'ACTIVE'
+		  AND ev.id = #{eventId};
+	</select>
+
+	<select id="findEventsByPromotionFilter" parameterType="com.wannabe.app.main.data.dto.event.PromotionFilter" resultMap="getEvent">
+		SELECT e.id AS id,
+		f.path AS thumbNail,
+		h.city AS city,
+		h.district AS district,
+		h.name AS hospitalName,
+		e.name AS name,
+		e.consult_count AS counselCount,
+		e.price AS cost
+		FROM t_event e
+		JOIN t_hospital h ON h.id = e.hospital_id
+		LEFT JOIN t_files f on e.image_group_id = f.group_id
+		WHERE e.promotion_group_id = #{promotionGroupId}
+		AND e.state = 'ACTIVE'
+		AND e.type = 'PROMOTION'
+		AND e.date_started &lt; NOW()::TIMESTAMPTZ
+		AND e.date_end &gt; NOW()::TIMESTAMPTZ
+		AND f.file_order = 1
+		<if test="city != null">
+			AND h.city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND h.district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		<if test="category != null">
+			AND e.category = #{category}
+		</if>
+		<if test="categoryDetail != null and categoryDetail.size() gt 0">
+			AND e.detail_category <![CDATA[&&]]> array[
+			#{categoryDetail}::varchar
+			]
+		</if>
+		ORDER BY
+		<if test="sort != null">
+			#{sort},
+		</if>
+		e.exposed_rank
+		<!--		<choose>-->
+		<!--			<when test="sort != null">-->
+		<!--				ORDER BY ${sort}-->
+		<!--			</when>-->
+		<!--			<otherwise>-->
+		<!--				ORDER BY e.exposed_rank-->
+		<!--			</otherwise>-->
+		<!--		</choose>-->
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="findPromotionGroupCount" parameterType="com.wannabe.app.main.data.dto.event.PromotionFilter" resultType="long">
+		SELECT count(*)
+		FROM t_event e
+		JOIN t_hospital h ON h.id = e.hospital_id
+		WHERE e.promotion_group_id = #{promotionGroupId}
+		AND e.state = 'ACTIVE'
+		AND e.type = 'PROMOTION'
+		AND e.date_started &lt; NOW()::TIMESTAMPTZ
+		AND e.date_end &gt; NOW()::TIMESTAMPTZ
+		<if test="city != null">
+			AND h.city = #{city}
+		</if>
+		<if test="district != null and district.size() gt 0">
+			AND h.district IN (
+			<foreach collection="district" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		<if test="category != null">
+			AND e.category = #{category}
+		</if>
+		<if test="categoryDetail != null and categoryDetail.size() gt 0">
+			AND e.detail_category <![CDATA[&&]]> array[
+			#{categoryDetail}::varchar
+			]
+		</if>
+	</select>
+
+	<select id="findAll" parameterType="Map" resultMap="Event">
+		SELECT *
+		FROM t_event
+		WHERE state = 'ACTIVE'
+		ORDER BY date_created desc
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="countAll" resultType="long">
+		SELECT COUNT(*)
+		FROM t_event
+		WHERE state = 'ACTIVE';
+	</select>
+
+	<select id="countAllEvent" resultType="long">
+		SELECT COUNT(*)
+		FROM t_event
+		WHERE state = 'ACTIVE'
+		  AND type = 'EVENT'
+		  AND date_started &lt; NOW()::TIMESTAMPTZ
+		  AND date_end &gt; NOW()::TIMESTAMPTZ;
+	</select>
+
+	<select id="countAllEventByHospitalId" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM t_event
+		WHERE state = 'ACTIVE'
+		AND type = 'EVENT'
+		AND hospital_id = #{hospitalId}
+		<if test="category != null and category.size() gt 0">
+			AND category IN (
+			<foreach collection="category" item="item" separator=",">
+				#{item}
+			</foreach>
+			)
+		</if>
+		;
+	</select>
+</mapper>

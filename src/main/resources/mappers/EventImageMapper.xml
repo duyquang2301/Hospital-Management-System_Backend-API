@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.EventImageMapper">
+
+    <select id="findEventImagesByEventId" parameterType="long" resultType="com.wannabe.app.main.data.entity.EventImage">
+        SELECT *
+        FROM t_files
+        WHERE group_id = #{eventImageGroupId}
+        ORDER BY file_order;
+    </select>
+</mapper>

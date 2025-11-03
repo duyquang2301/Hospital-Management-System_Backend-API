@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.BookmarkMapper">
+
+	<resultMap id="Bookmark" type="com.wannabe.app.main.data.entity.Bookmark">
+		<result column="user_id" property="userId"/>
+		<result column="type_id" property="typeId"/>
+		<result column="type" property="type"/>
+		<result column="date_created" property="createdAt"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+	</resultMap>
+
+	<select id="findBookmark" parameterType="com.wannabe.app.main.data.entity.Bookmark">
+		SELECT *
+		FROM t_bookmark
+		WHERE user_id = #{userId}
+		  AND type_id = #{typeId}
+		  AND type = #{type};
+	</select>
+
+	<insert id="insertBookmark" parameterType="com.wannabe.app.main.data.entity.Bookmark">
+		INSERT INTO t_bookmark (user_id,
+		                        type_id,
+		                        type)
+		VALUES (#{userId},
+		        #{typeId},
+		        #{type});
+	</insert>
+
+	<delete id="deleteBookmark" parameterType="com.wannabe.app.main.data.entity.Bookmark">
+		DELETE
+		FROM t_bookmark
+		WHERE user_id = #{userId}
+		  AND type_id = #{typeId}
+		  AND type = #{type};
+	</delete>
+
+	<select id="findEventBookMarkByUserId" parameterType="Map" resultMap="Bookmark">
+		SELECT tb.*
+		FROM t_bookmark tb
+			     JOIN t_event te on tb.type_id = te.id
+		WHERE tb.user_id = #{userId}
+		  AND tb.type = 'EVENT'
+		  AND te.state = 'ACTIVE'
+		  AND te.date_started &lt; NOW()::TIMESTAMPTZ
+		  AND te.date_end &gt; NOW()::TIMESTAMPTZ
+		ORDER BY tb.date_created
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="findArticleBookmarkByUserId" parameterType="Map" resultMap="Bookmark">
+		SELECT tb.*
+		FROM t_bookmark tb
+			     JOIN t_article ta on tb.type_id = ta.id
+		WHERE tb.user_id = #{userId}
+		  AND tb.type = 'ARTICLE'
+		  AND ta.available_yn = 'Y'
+		ORDER BY tb.date_created
+		LIMIT #{size} OFFSET #{page} * #{size};
+	</select>
+
+	<select id="findHospitalBookmarkByUserId" parameterType="Map" resultMap="Bookmark">
+		SELECT tb.*
+		FROM t_bookmark tb
+			     JOIN t_hospital th on tb.type_id = th.id
+		WHERE tb.user_id = #{userId}
+		  AND tb.type = 'HOSPITAL'
+		  AND th.state = 'ACTIVE'
+		  AND th.deleted_yn = 'N'
+		ORDER BY th.exposed_rank, tb.date_created
+		LIMIT #{size} OFFSET #{page} * #{size}
+	</select>
+
+	<select id="countCommunityBookMark" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM t_bookmark tb
+			     INNER JOIN t_article ta
+			                ON tb.type_id = ta.id
+		WHERE tb.user_id = #{userId}
+		  AND tb.type = 'ARTICLE'
+		  AND ta.available_yn = 'Y';
+	</select>
+
+	<select id="countHospitalBookMark" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM t_bookmark tb
+			     INNER JOIN t_hospital th
+			                ON tb.type_id = th.id
+		WHERE tb.user_id = #{userId}
+		  AND tb.type = 'HOSPITAL'
+		  AND th.state = 'ACTIVE';
+	</select>
+
+	<select id="countEventBookMark" parameterType="Map" resultType="long">
+		SELECT COUNT(*)
+		FROM t_bookmark tb
+			     INNER JOIN t_event te
+			                ON tb.type_id = te.id
+		WHERE tb.user_id = #{userId}
+		  AND tb.type = 'EVENT'
+		  AND te.state = 'ACTIVE'
+		  AND te.date_started &lt; NOW()::TIMESTAMPTZ
+		  AND te.date_end &gt; NOW()::TIMESTAMPTZ;
+	</select>
+</mapper>

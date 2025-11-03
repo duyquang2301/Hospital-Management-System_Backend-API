@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wannabe.app.main.mapper.FilesMapper">
+	<resultMap id="Files" type="com.wannabe.app.main.data.entity.Files">
+		<result column="id" property="id"/>
+		<result column="group_id" property="groupId"/>
+		<result column="original_file_name" property="originalFileName"/>
+		<result column="file_name" property="fileName"/>
+		<result column="path" property="path"/>
+		<result column="extension" property="extension"/>
+		<result column="size" property="size"/>
+		<result column="user_type" property="userType"/>
+		<result column="user_id" property="userId"/>
+		<result column="update_user_type" property="updateUserType"/>
+		<result column="update_user_id" property="updateUserId"/>
+		<result column="date_created" property="createdAt"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+		<result column="date_updated" property="updatedAt"
+			typeHandler="com.wannabe.app.main.utility.mybatis.LocalDateTimeHandler"/>
+	</resultMap>
+
+	<select id="findFileListByGroupId" parameterType="long" resultMap="Files">
+		SELECT *
+		FROM t_files
+		WHERE group_id = #{groupId}
+		ORDER BY file_order;
+	</select>
+
+	<select id="findFileByGroupId" parameterType="long" resultMap="Files">
+		SELECT *
+		FROM t_files
+		WHERE group_id = #{groupId}
+		  AND file_order = 1
+		ORDER BY file_order;
+	</select>
+
+	<select id="findFileById" parameterType="long" resultMap="Files">
+		SELECT *
+		FROM t_files
+		WHERE id = #{id};
+	</select>
+
+	<select id="findLastFileOrderByGroupId" parameterType="long" resultType="long">
+		SELECT file_order
+		FROM t_files
+		WHERE group_id = #{imageGroupId}
+		ORDER BY file_order DESC
+		LIMIT 1;
+	</select>
+
+	<select id="findGroupIdSequence" resultType="long">
+		select nextval('files_group_id_seq'::regclass);
+	</select>
+
+
+	<insert id="saveFiles" useGeneratedKeys="true" keyColumn="id" parameterType="com.wannabe.app.main.data.dto.file.FileDto">
+		INSERT INTO t_files (group_id,
+		                     original_file_name,
+		                     file_name,
+		                     path,
+		                     file_order,
+		                     extension,
+		                     size,
+		                     user_type,
+		                     user_id,
+		                     update_user_type,
+		                     update_user_id)
+		VALUES (#{file.groupId},
+		        #{file.originalFilename},
+		        #{file.filename},
+		        #{file.path},
+		        #{file.fileOrder},
+		        #{file.extension},
+		        #{file.size},
+		        #{file.userType},
+		        #{file.userId},
+		        #{file.updateUserType},
+		        #{file.updateUserId})
+	</insert>
+
+	<update id="updateFile" parameterType="com.wannabe.app.main.data.dto.file.FileDto">
+		UPDATE t_files
+		SET original_file_name = #{file.originalFilename},
+		    file_name          = #{file.filename},
+		    path               = #{file.path},
+		    extension          = #{file.extension},
+		    size               = #{file.size},
+		    update_user_type   = #{file.updateUserType},
+		    update_user_id     = #{file.updateUserId},
+		    date_updated       = NOW()::TIMESTAMPTZ
+		WHERE group_id = #{file.groupId}
+		  AND file_order = #{file.fileOrder};
+	</update>
+
+	<update id="updateFileOrder" parameterType="Map">
+		UPDATE t_files
+		SET file_order = #{fileOrder}
+		where id = #{fileId};
+	</update>
+
+	<delete id="deleteFile" parameterType="long">
+		DELETE
+		FROM t_files
+		WHERE id = #{fileId};
+	</delete>
+</mapper>
